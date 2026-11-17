@@ -156,11 +156,26 @@ function M.up()
   if M.state == "recording" then finish() end
 end
 
+-- ~/.claude-dictation/status: plain key=value lines for verify.sh and agents (rewritten on load and every minute).
+local function writeStatus()
+  local f = io.open(DIR .. "/status", "w")
+  if not f then return end
+  f:write("updated=", os.date("!%Y-%m-%dT%H:%M:%SZ"), "\n",
+    "accessibility=", tostring(hs.accessibilityState()), "\n",
+    "f5_listener=", tostring(M.tap ~= nil and M.tap:isEnabled()), "\n",
+    "claude=", tostring(CLAUDE), "\n",
+    "tmux=", tostring(TMUX), "\n",
+    "session_running=", tostring(TMUX ~= nil and running()), "\n")
+  f:close()
+end
+
 function M.start()
   if not CLAUDE or not TMUX then
+    writeStatus()
     hs.alert.show("Claude dictation: " .. (CLAUDE and "tmux" or "claude") .. " not found. Run install.sh again.", 6)
     return M
   end
+  if not hs.accessibilityState() then hs.accessibilityState(true) end  -- shows macOS's Accessibility prompt
   M.tap = hs.eventtap.new({ evTypes.keyDown, evTypes.keyUp }, function(e)
     if not KEYS[e:getKeyCode()] then return false end
     if e:getType() == evTypes.keyDown then
@@ -176,12 +191,15 @@ function M.start()
   ensure()
   M.keepAlive = hs.timer.doEvery(60, function()
     if M.state == "idle" then ensure() end
-    if not M.tap:isEnabled() then M.tap:start() end  -- macOS can disable a tap under load
+    -- macOS can disable a tap under load; a tap made before Accessibility was granted also starts working here
+    if not M.tap:isEnabled() then M.tap:start() end
+    writeStatus()
   end)
   M.daily = hs.timer.doAt(DAILY_RESTART, "1d", function()
     if M.state == "idle" then tmux("kill-server"); hs.timer.doAfter(2, ensure) end
   end)
   if not hs.autoLaunch() then hs.autoLaunch(true) end  -- Hammerspoon must start at login for this to work
+  writeStatus()
   return M
 end
 

@@ -49,11 +49,11 @@ open -g -a Hammerspoon
 
 cat <<'EOF'
 
-Installed. Two one-time permissions, then it is ready:
-  1. Accessibility: System Settings > Privacy & Security > Accessibility > turn on Hammerspoon.
-     Then click the Hammerspoon menu-bar icon > Reload Config.
-  2. Microphone: the first time you hold F5, macOS asks to let Hammerspoon use the microphone. Click Allow,
-     then try again.
-
-Use: put the cursor anywhere, hold F5, speak, release. See README.md for settings and troubleshooting.
+==> Installed. Next steps (README.md > "3. Permissions"):
+  1. The USER must allow Accessibility for Hammerspoon (an agent cannot click this):
+       System Settings > Privacy & Security > Accessibility > Hammerspoon ON
+       shortcut: open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+  2. Run ./verify.sh (plays a short phrase out loud; use ./verify.sh --speak with headphones).
+     The first recording makes macOS ask the USER to allow the microphone for Hammerspoon: Allow, then run it again.
+  3. The user tries it: cursor in any text field, hold F5, speak, release.
 EOF
