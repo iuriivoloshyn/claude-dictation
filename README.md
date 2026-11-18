@@ -17,11 +17,14 @@ F5 up   ─► Hammerspoon module ─► tmux send-keys Space ─► `claude` st
 ```
 
 - **Hidden session**: `tmux -L claude-dictation`, session `dictation`, working folder `~/.claude-dictation`. It runs `claude --settings ~/.claude-dictation/settings.json --strict-mcp-config --setting-sources local`, so the user's global hooks, plugins and MCP servers are not loaded. Settings give tap-mode voice, the capture hook, Haiku, no Remote Control and ask-before-tools permissions.
-- **Always warm**: Hammerspoon starts the session at load (login), restarts it within 60 s if it dies, and refreshes it daily at 05:00. A cold start takes about 1 s, and speech during it is lost. The session uses about 280 MB of RAM; tell the user.
+- **Always warm**: Hammerspoon starts the session at load (login) and restarts it within 60 s if it dies. A cold start takes about 1 s, and speech during it is lost. The session uses about 280 MB of RAM; tell the user.
+- **Fresh microphone**: a long-running Claude Code can lose the microphone (after sleep, or when AirPods reconnect) and then records only silence. So the session is restarted a few seconds after the Mac wakes, whenever microphones come, go or the default input changes, once it is 24 h old, and right after Claude Code reports "No audio detected". Restarts wait until no dictation is running.
+- **Recording that ends early**: Claude Code stops by itself after 15 s of silence or 2 minutes. The module notices that while F5 is still held, collects the result straight away and doesn't send another tap on release, because that would start a new recording. Claude Code's notices ("No audio detected", "No speech detected", microphone denied, not logged in) are shown as a banner that names the current input device.
+- **Never stuck**: every banner has a time limit. If a step errors, or lasts too long (starting 35 s, recording 135 s, transcribing 50 s), the module resets to idle on its own. Errors are printed to the Hammerspoon console as `claude_dictation: …`.
 - **Short transcripts**: Claude Code auto-submits only 3+ words. For shorter ones the module presses Enter once the screen settles.
 - **Blocked prompt**: after the hook blocks it, Claude Code puts the text back into its input, so the module clears it with Ctrl+U. Recording can only start from an empty input.
 - **First start** in `~/.claude-dictation` shows "Do you trust this folder?". The module answers Yes on its own, and presses Enter only when "Yes" is highlighted.
-- **Status file** `~/.claude-dictation/status` is rewritten every minute: `accessibility`, `f5_listener`, `claude` and `tmux` paths, `session_running`.
+- **Status file** `~/.claude-dictation/status` is rewritten every minute: `accessibility`, `f5_listener`, `claude` and `tmux` paths, `session_running`, `input` (the current default microphone).
 
 ## 1. Preflight
 
@@ -86,7 +89,9 @@ Always look at the hidden session first: `tmux -L claude-dictation capture-pane 
 |---|---|
 | F5 does nothing, no banner | `accessibility=false` in the status file: the user must grant it (step 3). No status file: the module didn't load, so ask the user for errors from the Hammerspoon console. Hammerspoon not running: `open -a Hammerspoon`. |
 | "Dictation didn't start" banner | The session shows why. `Microphone access is denied`: System Settings → Privacy & Security → Microphone → Hammerspoon. `Voice mode requires a Claude.ai account`: the user logs in with `/login`. |
-| "Dictation: no text" | Nothing was recognised. Check the input device (System Settings → Sound → Input), then `./verify.sh --speak`. |
+| "The microphone sent no sound (input: …)" | Claude Code got pure silence. The module has already restarted the session, so the next try usually works. If it repeats, the named input is wrong or muted: System Settings → Sound → Input. Check `input=` in the status file. |
+| "Didn't hear any speech" / "nothing recognised" | The mic works but caught no words. Is the named input the one the user speaks into? AirPods in the case or connected to the iPhone, or an "iPhone Microphone" input, are common causes. Then run `./verify.sh --speak`. |
+| "Dictation: no text" | Claude Code didn't produce a transcript within 15 s (45 s while it still says "Transcribing…"). Read the pane. |
 | First words cut off | The session was cold-starting (after a reboot or crash). It's warm again within a minute. |
 | macOS's own dictation pops up too | System Settings → Keyboard → Dictation → Shortcut → another shortcut, or Off. |
 | Text went to the wrong window | It pastes into the app that had focus when F5 went down. It's also on the clipboard. |

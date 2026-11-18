@@ -57,7 +57,12 @@ if [[ ! -f "$D/out.txt" ]]; then   # under 3 words is inserted but not submitted
 fi
 if [[ ! -f "$D/out.txt" ]]; then
   t send-keys -t dictation Escape
-  fail "no transcript. The microphone heard nothing: speakers muted or headphones on? Try ./verify.sh --speak"
+  input="$(grep '^input=' "$D/status" 2>/dev/null | cut -d= -f2-)"
+  if pane | grep -q 'No audio detected'; then
+    t kill-server   # a session that lost the microphone records silence; Hammerspoon starts a fresh one
+    fail "the microphone sent no sound at all (input: ${input:-unknown}). The hidden session was restarted; wait 1 minute and run this again. If it repeats, check System Settings > Sound > Input."
+  fi
+  fail "no transcript. The microphone (input: ${input:-unknown}) heard nothing: speakers muted, or headphones/AirPods on so the mic can't hear the speakers? Try ./verify.sh --speak"
 fi
 text="$(cat "$D/out.txt")"; rm -f "$D/out.txt"
 sleep 0.3; t send-keys -t dictation C-u   # the blocked prompt is put back in the input; clear it
