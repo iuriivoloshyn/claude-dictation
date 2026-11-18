@@ -58,6 +58,7 @@ local function inputHasText(p)
   if not line then return false end
   line = line:gsub("^❯", "")
   for _, g in ipairs({ "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█" }) do line = line:gsub(g, "") end  -- level meter
+  if line:find('^%s*Try "') then return false end  -- grey hint shown in an empty input
   return line:find("%S") ~= nil
 end
 
