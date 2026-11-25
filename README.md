@@ -88,7 +88,7 @@ Always look at the hidden session first: `tmux -L claude-dictation capture-pane 
 | Symptom | Cause and fix |
 |---|---|
 | F5 does nothing, no banner | `accessibility=false` in the status file: the user must grant it (step 3). No status file: the module didn't load, so ask the user for errors from the Hammerspoon console. Hammerspoon not running: `open -a Hammerspoon`. |
-| "Dictation didn't start" banner | The session shows why. `Microphone access is denied`: System Settings → Privacy & Security → Microphone → Hammerspoon. `Voice mode requires a Claude.ai account`: the user logs in with `/login`. |
+| "Dictation didn't start" banner | The session shows why. `Microphone access is denied`: System Settings → Privacy & Security → Microphone → Hammerspoon. `Voice mode requires a Claude.ai account`: the user logs in with `/login`. Text after `❯` in the input box: F5 starts a recording only from an empty input. The module clears it before every try; if text stays there, an older module is installed, so run `./install.sh` again. |
 | "The microphone sent no sound (input: …)" | Claude Code got pure silence. The module has already restarted the session, so the next try usually works. If it repeats, the named input is wrong or muted: System Settings → Sound → Input. Check `input=` in the status file. |
 | "Didn't hear any speech" / "nothing recognised" | The mic works but caught no words. Is the named input the one the user speaks into? AirPods in the case or connected to the iPhone, or an "iPhone Microphone" input, are common causes. Then run `./verify.sh --speak`. |
 | "Dictation: no text" | Claude Code didn't produce a transcript within 15 s (45 s while it still says "Transcribing…"). Read the pane. |

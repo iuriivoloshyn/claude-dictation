@@ -44,6 +44,11 @@ local function ready()
   local p = pane()
   return p:find("❯") ~= nil and not p:find("Accessing workspace")
 end
+-- Empties the input box. Claude Code's Ctrl-U deletes only one visual line, and a long transcript put back after the
+-- hook blocks it wraps over several: the rest stayed there, the next tap typed a space into it instead of starting a
+-- recording, and F5 showed "Dictation didn't start". Extra Ctrl-Us on an empty input do nothing.
+local CLEAR = "send-keys -t dictation" .. string.rep(" C-u", 60)
+local function clearInput() tmux(CLEAR) end
 
 -- Reading Claude Code's screen. The footer is everything under the input box: "REC", "Transcribing…", notices.
 local function footer(p)
@@ -145,7 +150,7 @@ local function reset(msg)
   for _, k in ipairs({ "poll", "recWatch", "startPoll" }) do if M[k] then pcall(M[k].stop, M[k]) end end
   pcall(function()
     if isRecording(pane()) then tmux("send-keys -t dictation Escape") end  -- cancel a recording still running
-    tmux("send-keys -t dictation C-u")
+    clearInput()
   end)
   toIdle(msg, 4)
 end
@@ -182,7 +187,7 @@ local function finish(sendSpace)
       local text = f:read("a"); f:close(); os.remove(OUT)
       M.poll:stop()
       -- the blocked prompt is put back into the input box: clear it
-      hs.timer.doAfter(0.3, function() tmux("send-keys -t dictation C-u") end)
+      hs.timer.doAfter(0.3, clearInput)
       text = text:gsub("^%s+", ""):gsub("%s+$", "")
       toIdle()
       if text ~= "" then paste(text) end
@@ -192,7 +197,7 @@ local function finish(sendSpace)
     local foot, elapsed = footer(p), now() - t0
     local kind, msg = problem(foot)
     if kind and kind ~= M.staleNotice then
-      M.poll:stop(); tmux("send-keys -t dictation C-u")
+      M.poll:stop(); clearInput()
       if kind == "nomic" then M.restartPending = true end
       return toIdle(msg, 6)
     end
@@ -212,7 +217,7 @@ local function finish(sendSpace)
       end
     end
     if elapsed > (busy and 45 or 15) then
-      M.poll:stop(); tmux("send-keys -t dictation C-u")
+      M.poll:stop(); clearInput()
       toIdle("Dictation: no text. See: tmux -L " .. SOCKET .. " attach -t dictation", 5)
     end
   end))
@@ -221,7 +226,7 @@ end
 local function record()
   os.remove(OUT)
   M.staleNotice = problem(footer(pane()))  -- a notice left over from the previous try is not about this one
-  tmux("send-keys -t dictation C-u")    -- recording starts only from an empty input
+  clearInput()  -- recording starts only from an empty input
   tmux("send-keys -t dictation Space")  -- tap mode: first tap starts recording
   setState("recording")
   alert("🎙 Listening… release F5 to paste", STUCK_AFTER.recording)

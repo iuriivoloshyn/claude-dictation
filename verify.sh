@@ -10,6 +10,7 @@ D="$HOME/.claude-dictation"
 mode="${1:-}"
 t()    { tmux -L claude-dictation "$@"; }
 pane() { t capture-pane -p -t dictation 2>/dev/null; }
+clear_input() { t send-keys -t dictation $(printf "C-u %.0s" {1..60}); }  # one Ctrl-U clears only one visual line
 ok()   { echo "ok:   $*"; }
 fail() {
   echo "FAIL: $*"
@@ -35,7 +36,7 @@ grep -q '^❯' <<<"$p" || fail "the hidden Claude Code is not ready. Hammerspoon
 ok "hidden Claude Code is ready"
 
 rm -f "$D/out.txt"
-t send-keys -t dictation C-u; sleep 0.4
+clear_input; sleep 0.4
 t send-keys -t dictation Space   # = F5 down
 for _ in $(seq 1 20); do pane | grep -q 'REC' && break; sleep 0.1; done
 pane | grep -q 'REC' || fail "recording did not start. See the session text below: 'Microphone access is denied' means the user must allow the microphone for Hammerspoon (System Settings > Privacy & Security > Microphone); 'requires a Claude.ai account' means the user must log in to Claude Code with a subscription account."
@@ -65,7 +66,7 @@ if [[ ! -f "$D/out.txt" ]]; then
   fail "no transcript. The microphone (input: ${input:-unknown}) heard nothing: speakers muted, or headphones/AirPods on so the mic can't hear the speakers? Try ./verify.sh --speak"
 fi
 text="$(cat "$D/out.txt")"; rm -f "$D/out.txt"
-sleep 0.3; t send-keys -t dictation C-u   # the blocked prompt is put back in the input; clear it
+sleep 0.3; clear_input   # the blocked prompt is put back in the input; clear it
 echo "transcript: $text"
 
 if [[ "$mode" != "--speak" ]]; then
